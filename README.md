@@ -20,6 +20,12 @@
 * **Component weight**: estimation of the size of rendered components.
 * **CLI output**: display data in table or JSON format.
 
+## Libraries
+* **Yargs**: Main CLI library
+* **Chalk v.4**: CLI colors
+* **cli-table3**: CLI table
+
+
 ## Author's Note
 
 This is my first project in the **Node.js** ecosystem and my first **Open Source** initiative of this technical complexity, so expect big errors and problems.

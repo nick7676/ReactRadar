@@ -4,7 +4,8 @@
   "description": "![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen?style=flat) ![Node.js](https://img.shields.io/badge/node-%3E=18-brightgreen?style=flat) ![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC?style=flat) ![React](https://img.shields.io/badge/React-%2320232a?style=flat&logo=react&logoColor=%2361DAFB) ![Status](https://img.shields.io/badge/status-experimental-orange?style=flat) ![Last Commit](https://img.shields.io/github/last-commit/nick7676/ReactRadar?style=flat-square)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node src/index.ts"
   },
   "repository": {
     "type": "git",
@@ -13,13 +14,26 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/nick7676/ReactRadar/issues"
   },
   "homepage": "https://github.com/nick7676/ReactRadar#readme",
   "devDependencies": {
+    "@types/chalk": "^0.4.31",
+    "@types/node": "^25.4.0",
+    "@types/yargs": "^17.0.35",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "eslint": "^10.0.3",
+    "fast-glob": "^3.3.3",
+    "ora": "^9.3.0",
+    "yargs": "^18.0.0"
   }
 }
