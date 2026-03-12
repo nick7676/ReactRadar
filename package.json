@@ -2,10 +2,11 @@
   "name": "reactradar",
   "version": "1.0.0",
   "description": "![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen?style=flat) ![Node.js](https://img.shields.io/badge/node-%3E=18-brightgreen?style=flat) ![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC?style=flat) ![React](https://img.shields.io/badge/React-%2320232a?style=flat&logo=react&logoColor=%2361DAFB) ![Status](https://img.shields.io/badge/status-experimental-orange?style=flat) ![Last Commit](https://img.shields.io/github/last-commit/nick7676/ReactRadar?style=flat-square)",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "build": "tsc -p tsconfig.json"
   },
   "repository": {
     "type": "git",
@@ -35,5 +36,8 @@
     "fast-glob": "^3.3.3",
     "ora": "^9.3.0",
     "yargs": "^18.0.0"
+  },
+  "bin": {
+    "reactradar": "./dist/index.js"
   }
 }
