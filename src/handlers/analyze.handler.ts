@@ -1,11 +1,10 @@
 import chalk from "chalk";
 import fs from "fs";
-import path from "path";
 import { table } from "../display/table.js";
 import { findComponent } from "../utils/findComponent.js";
 
 export const analyzeHandler = (argv: { path?: string }) => {
-  const targetDir = argv.path || path.join(process.cwd(), "src");
+  const targetDir = argv.path || process.cwd();
 
   if (!fs.existsSync(targetDir)) {
     console.log(chalk.red(`\nNo directory found: ${targetDir}\n`));

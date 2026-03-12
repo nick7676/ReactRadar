@@ -7,6 +7,13 @@
 ![Status](https://img.shields.io/badge/status-experimental-orange?style=flat)
 ![Last Commit](https://img.shields.io/github/last-commit/nick7676/ReactRadar?style=flat-square)
 
+## Description
+
+ReactRadar is a CLI tool for analyzing React projects directly from the terminal.
+
+It provides static analysis and runtime metrics such as component size,
+render hierarchy, and performance insights.
+
 ## Build Preview 
 * **Potential error detection**: TypeScript analysis and ESLint linting without running a full build.
 * **Package weight calculation**: estimation of the size of installed project packages.
@@ -24,6 +31,18 @@
 * **Yargs**: Main CLI library
 * **Chalk v.4**: CLI colors
 * **cli-table3**: CLI table
+  
+## TODO
+
+* [x] Component Line Scanner
+* [ ] Component size Scanner 
+* [ ] Ability to pass arguments
+* [ ] Component navigation metrics
+* [ ] Render timing
+* [ ] Rendered component tracking
+* [ ] Component rendered weight
+* [ ] Wiki
+* [ ] Npm relase
 
 
 ## Author's Note
