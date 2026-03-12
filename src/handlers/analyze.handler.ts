@@ -1,7 +1,8 @@
 import chalk from "chalk";
 import fs from "fs";
-import { findComponent } from "../utils/findComponent.js";
 import path from "path";
+import { table } from "../display/table.js";
+import { findComponent } from "../utils/findComponent.js";
 
 export const analyzeHandler = (argv: { path?: string }) => {
   const targetDir = argv.path || path.join(process.cwd(), "src");
@@ -15,16 +16,10 @@ export const analyzeHandler = (argv: { path?: string }) => {
 
   const files = findComponent(targetDir);
 
-  files.forEach((f) => {
-    const fileName = path.relative(process.cwd(), f.name);
-    const output = `${fileName} -> ${f.loc} Lines`;
+  if (!files.length) {
+    console.log(chalk.yellow("No components found."));
+    return;
+  }
 
-    if (f.loc > 300) {
-      console.log(chalk.red.bold(output));
-    } else if (f.loc > 200) {
-      console.log(chalk.yellow(output));
-    } else {
-      console.log(chalk.green(output));
-    }
-  });
+  table(files);
 };
