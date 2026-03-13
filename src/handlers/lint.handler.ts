@@ -1,0 +1,109 @@
+import fs from "fs";
+import chalk from "chalk";
+import Table from "cli-table3";
+import { ESLint } from "eslint";
+import globals from "globals";
+import { findComponent } from "../utils/findComponent.js";
+
+export const lintHandler = async (argv: { path?: string; format?: "table" | "json" }) => {
+  const targetDir = argv.path || process.cwd();
+
+  if (!fs.existsSync(targetDir)) {
+    console.error(chalk.red(`\nNo directory found: ${targetDir}\n`));
+    process.exit(1);
+  }
+
+  const files = findComponent(targetDir).map((f) => f.name);
+
+  if (!files.length) {
+    console.log(chalk.yellow("\nNo React components found.\n"));
+    return;
+  }
+
+  const tsPlugin = (await import("@typescript-eslint/eslint-plugin")).default as any;
+  const tsParser = (await import("@typescript-eslint/parser")).default as any;
+
+  const eslint = new ESLint({
+    overrideConfigFile: true,
+    overrideConfig: [{
+      files: ["**/*.{js,jsx,ts,tsx}"],
+      plugins: {
+        "@typescript-eslint": tsPlugin,
+      },
+      languageOptions: {
+        parser: tsParser,
+        globals: {
+          ...globals.browser,
+          ...globals.node,
+          ...globals.es2021,
+          React: "readonly",
+          JSX: "readonly",
+        },
+      },
+      rules: {
+        "@typescript-eslint/no-unused-vars": "off",
+        "no-undef": "off",
+        "no-unreachable": "error",
+      },
+    }],
+  });
+
+  const results = await eslint.lintFiles(files);
+
+  const flat = results.flatMap((r) =>
+    r.messages.map((m) => ({
+      file: r.filePath,
+      line: m.line,
+      col: m.column,
+      severity: m.severity === 2 ? "error" : "warn",
+      message: m.message,
+      rule: m.ruleId ?? "unknown",
+    }))
+  );
+
+  if (!flat.length) {
+    console.log(chalk.green("\n✔ No issues found.\n"));
+    return;
+  }
+
+  if (argv.format === "json") {
+    console.log(JSON.stringify(flat, null, 2));
+    return;
+  }
+
+  console.log(chalk.blue(`\nReactRadar Lint Results (${targetDir})\n`));
+
+  const table = new Table({
+    head: [
+      chalk.magenta("file"),
+      chalk.magenta("line"),
+      chalk.magenta("rule"),
+      chalk.magenta("message"),
+      chalk.magenta("severity"),
+    ],
+    style: { head: [], border: [] },
+  });
+
+  for (const issue of flat) {
+    const severity =
+      issue.severity === "error"
+        ? chalk.red.bold("error")
+        : chalk.yellow("warn");
+
+    table.push([
+      chalk.gray(issue.file.replace(targetDir + "/", "")),
+      `${issue.line}:${issue.col}`,
+      chalk.cyan(issue.rule),
+      issue.message,
+      severity,
+    ]);
+  }
+
+  console.log(table.toString());
+
+  const errors = flat.filter((i) => i.severity === "error").length;
+  const warns = flat.filter((i) => i.severity === "warn").length;
+  console.log(
+    `\n${chalk.red.bold(`${errors} error(s)`)}  ${chalk.yellow(`${warns} warning(s)`)}\n`
+  );
+};
