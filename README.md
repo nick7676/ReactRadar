@@ -16,8 +16,6 @@ render hierarchy, and performance insights.
 
 ## Build Preview 
 * **Potential error detection**: TypeScript analysis and ESLint linting without running a full build.
-* **Package weight calculation**: estimation of the size of installed project packages.
-* **Component weight calculation**: estimation of the size of individual components, including any dependent files.
 * **Component navigation metrics**: average depth, average number of children, static parent-child relationships.
 
 ## Dynamic CLI 
@@ -25,7 +23,7 @@ render hierarchy, and performance insights.
 * **Render timing**: duration of each component render.
 * **Parent-child hierarchy**: mapping of rendered components and their parents.
 * **Component weight**: estimation of the size of rendered components.
-* **CLI output**: display data in table or JSON format.
+* **CLI output**: display data in a table.
 
 ## Libraries
 * **Yargs**: Main CLI library
@@ -35,14 +33,32 @@ render hierarchy, and performance insights.
 ## TODO
 
 * [x] Component Line Scanner
-* [ ] Component size Scanner 
-* [ ] Ability to pass arguments
-* [ ] Component navigation metrics
+* [ ] Build errors/ESlint preview
+* [ ] Ability to pass arguments (filters)
+* [x] Component navigation metrics
 * [ ] Render timing
 * [ ] Rendered component tracking
 * [ ] Component rendered weight
 * [ ] Wiki
-* [ ] Npm relase
+* [x] Npm relase
+
+## Usage
+
+Global installation:
+
+```bash
+npm install -g react-radar
+```
+
+Run from the root of a React project:
+
+```bash
+# scan component files by lines
+react-radar analyze 
+
+# inspect static parent–child relationships
+react-radar parents 
+```
 
 
 ## Author's Note

@@ -23,33 +23,7 @@ export const parentsHandler = async (argv: { path?: string; format?: "table" | "
     return;
   }
 
-  console.log(chalk.blue(`\nReactRadar Component Navigation Metrics (${targetDir})\n`));
-
-  const table = new Table({
-    head: [
-      chalk.cyan("Component"),
-      chalk.cyan("Depth"),
-      chalk.cyan("Children Count")
-    ],
-    style: { head: [], border: [] },
-  });
-
-  const sortedComponents = [...result.components].sort((a, b) => {
-    const depthA = a.depth ?? Infinity;
-    const depthB = b.depth ?? Infinity;
-    if (depthA !== depthB) return depthA - depthB;
-    return a.name.localeCompare(b.name);
-  });
-
-  sortedComponents.forEach((c) => {
-    table.push([
-      c.name,
-      c.depth !== undefined ? c.depth.toString() : "-",
-      c.children.length.toString()
-    ]);
-  });
-
-  console.log(table.toString());
+  console.log(chalk.blue(`\nReactRadar Component Render Tree (${targetDir})\n`));
 
   const summaryTable = new Table({
     head: [
@@ -66,9 +40,15 @@ export const parentsHandler = async (argv: { path?: string; format?: "table" | "
     result.avgChildren.toFixed(2)
   ]);
 
-  console.log("\n" + summaryTable.toString() + "\n");
+  console.log(summaryTable.toString() + "\n");
 
-  console.log(chalk.blue(`Component Render Tree:\n`));
+  const sortedComponents = [...result.components].sort((a, b) => {
+    const depthA = a.depth ?? Infinity;
+    const depthB = b.depth ?? Infinity;
+    if (depthA !== depthB) return depthA - depthB;
+    return a.name.localeCompare(b.name);
+  });
+
   const roots = sortedComponents.filter((c) => c.parents.length === 0);
   const componentMap = new Map(result.components.map((c) => [c.name, c]));
 
