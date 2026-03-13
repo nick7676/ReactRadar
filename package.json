@@ -1,7 +1,7 @@
 {
   "name": "reactradar",
-  "version": "1.0.0",
-  "description": "![Open Source](https://img.shields.io/badge/Open%20Source-Yes-brightgreen?style=flat) ![Node.js](https://img.shields.io/badge/node-%3E=18-brightgreen?style=flat) ![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC?style=flat) ![React](https://img.shields.io/badge/React-%2320232a?style=flat&logo=react&logoColor=%2361DAFB) ![Status](https://img.shields.io/badge/status-experimental-orange?style=flat) ![Last Commit](https://img.shields.io/github/last-commit/nick7676/ReactRadar?style=flat-square)",
+  "version": "0.1.0",
+  "description": "A CLI tool for analyzing React projects",
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -12,8 +12,14 @@
     "type": "git",
     "url": "git+https://github.com/nick7676/ReactRadar.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "react",
+    "cli",
+    "typescript",
+    "component",
+    "analyzer"
+  ],
+  "author": "nick7676",
   "license": "ISC",
   "type": "module",
   "bugs": {
