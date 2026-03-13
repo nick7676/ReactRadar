@@ -1,5 +1,5 @@
 {
-  "name": "reactradar",
+  "name": "react-radar-cli",
   "version": "0.1.0",
   "description": "A CLI tool for analyzing React projects",
   "main": "dist/index.js",
