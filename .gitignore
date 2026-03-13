@@ -30,3 +30,6 @@ logs/
 
 # Optional
 coverage/
+
+# Cursor
+.cursor/
