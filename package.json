@@ -4,9 +4,12 @@
   "description": "A CLI tool for analyzing React projects",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node src/index.ts",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report"
   },
   "repository": {
     "type": "git",
@@ -27,6 +30,7 @@
   },
   "homepage": "https://github.com/nick7676/ReactRadar#readme",
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/chalk": "^0.4.31",
     "@types/node": "^25.4.0",
     "@types/yargs": "^17.0.35",
