@@ -54,10 +54,13 @@ Run from the root of a React project:
 
 ```bash
 # scan component files by lines
-react-radar analyze 
+reactradar analyze 
 
 # inspect static parent–child relationships
-react-radar parents 
+reactradar parents 
+
+# inspect all lint errors (also comments)
+reactradar lint
 ```
 
 
