@@ -1,22 +1,12 @@
 import type { CommandModule } from "yargs";
 import { analyzeHandler } from "../handlers/analyze.handler.js";
+import type { SharedArgv } from "./sharedOptions.js";
+import { sharedOptions } from "./sharedOptions.js";
 
-export const analyzeCommand: CommandModule = {
+export const analyzeCommand: CommandModule<{}, SharedArgv> = {
   command: "analyze",
   describe: "Analyze your React project",
   builder: (yargs) =>
-    yargs
-      .option("format", {
-        alias: "f",
-        type: "string",
-        choices: ["table"] as const,
-        default: "table",
-        description: "Output format",
-      })
-      .option("path", {
-        alias: "p",
-        type: "string",
-        description: "Directory to scan",
-      }),
-  handler: (argv) => analyzeHandler(argv as any),
+    sharedOptions(yargs),
+  handler: (argv) => analyzeHandler(argv),
 };

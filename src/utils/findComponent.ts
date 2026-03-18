@@ -1,34 +1,42 @@
 import fs from "fs/promises";
 import path from "path";
-import { isReactComponent } from "./componentDetection.js";
+import fg from "fast-glob";
+import { detectComponent } from "./componentDetection.js";
 
-const EXCLUDED_DIRS = new Set(["node_modules", ".git", "dist", "build"]);
+export interface ComponentFile {
+  filePath: string;
+  componentName: string;
+  loc: number;
+}
 
 export const findComponent = async (
   dirPath: string
-): Promise<{ name: string; loc: number }[]> => {
-  let results: { name: string; loc: number }[] = [];
-  const list = await fs.readdir(dirPath);
+): Promise<ComponentFile[]> => {
+  const rootPath = path.resolve(dirPath);
+  const files = await fg(["**/*.{tsx,jsx,ts,js}"], {
+    cwd: rootPath,
+    ignore: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+    ],
+    absolute: true,
+  });
 
-  await Promise.all(
-    list.map(async (file) => {
-      const fullPath = path.join(dirPath, file);
-      const stat = await fs.stat(fullPath);
-
-      if (stat.isDirectory()) {
-        if (!EXCLUDED_DIRS.has(file)) {
-          const sub = await findComponent(fullPath);
-          results = results.concat(sub);
-        }
-      } else if (/\.(tsx|jsx|ts|js)$/.test(file)) {
-        const content = await fs.readFile(fullPath, "utf8");
-        if (isReactComponent(fullPath, content)) {
-          const loc = content.split("\n").length;
-          results.push({ name: fullPath, loc });
-        }
-      }
+  const detected = await Promise.all(
+    files.map(async (file) => {
+      const content = await fs.readFile(file, "utf8");
+      const info = detectComponent(file, content);
+      if (!info.isComponent) return null;
+      const loc = content.split("\n").length;
+      const componentName =
+        info.name ?? path.basename(file, path.extname(file));
+      return { filePath: file, componentName, loc } satisfies ComponentFile;
     })
   );
 
-  return results;
+  return detected
+    .filter((r): r is ComponentFile => r !== null)
+    .sort((a, b) => a.filePath.localeCompare(b.filePath));
 };
