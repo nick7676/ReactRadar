@@ -3,7 +3,10 @@ import fs from "fs";
 import { table } from "../display/table.js";
 import { findComponent } from "../utils/findComponent.js";
 
-export const analyzeHandler = async (argv: { path?: string; format?: "table" | "json" }) => {
+export const analyzeHandler = async (argv: {
+  path?: string;
+  format?: "table" | "json";
+}) => {
   const targetDir = argv.path || process.cwd();
 
   if (!fs.existsSync(targetDir)) {

@@ -3,7 +3,8 @@ import { parentsHandler } from "../handlers/parents.handler.js";
 
 export const parentsCommand: CommandModule = {
   command: "parents",
-  describe: "Analyze static parent-child relationships between React components",
+  describe:
+    "Analyze static parent-child relationships between React components",
   builder: (yargs) =>
     yargs
       .option("format", {

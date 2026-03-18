@@ -7,11 +7,18 @@ function walk(node: ASTNode, fn: (n: ASTNode) => boolean): boolean {
   if (fn(node)) return true;
   const keys = Object.keys(node) as (keyof ASTNode)[];
   for (const key of keys) {
-    if (key === "type" || key === "loc" || key === "range" || key === "parent") continue;
+    if (key === "type" || key === "loc" || key === "range" || key === "parent")
+      continue;
     const val = node[key];
     if (Array.isArray(val)) {
       for (const item of val) {
-        if (item && typeof item === "object" && "type" in item && walk(item as ASTNode, fn)) return true;
+        if (
+          item &&
+          typeof item === "object" &&
+          "type" in item &&
+          walk(item as ASTNode, fn)
+        )
+          return true;
       }
     } else if (val && typeof val === "object" && "type" in (val as object)) {
       if (walk(val as ASTNode, fn)) return true;
@@ -35,7 +42,10 @@ function getExportedComponentName(ast: ASTNode): string | null {
     const n = stmt as ASTNode;
     if (n.type === "ExportDefaultDeclaration") {
       const decl = n.declaration as ASTNode;
-      if (decl.type === "FunctionDeclaration" || decl.type === "ClassDeclaration") {
+      if (
+        decl.type === "FunctionDeclaration" ||
+        decl.type === "ClassDeclaration"
+      ) {
         const id = decl.id as unknown as { name?: string } | undefined;
         if (id?.name && isPascalCase(id.name)) return id.name;
         if (id?.name) return id.name;
@@ -44,21 +54,36 @@ function getExportedComponentName(ast: ASTNode): string | null {
         const name = (decl as unknown as { name?: string }).name;
         if (name) return name;
       }
-      if (decl.type === "CallExpression" || decl.type === "ArrowFunctionExpression" || decl.type === "FunctionExpression") return null;
+      if (
+        decl.type === "CallExpression" ||
+        decl.type === "ArrowFunctionExpression" ||
+        decl.type === "FunctionExpression"
+      )
+        return null;
     }
     if (n.type === "ExportNamedDeclaration") {
       const decl = n.declaration as ASTNode | undefined;
       if (decl?.type === "VariableDeclaration") {
-        const declarations = decl.declarations as Array<{ id: ASTNode; init?: ASTNode }> | undefined;
+        const declarations = decl.declarations as
+          | Array<{ id: ASTNode; init?: ASTNode }>
+          | undefined;
         for (const d of declarations ?? []) {
           if (d.id?.type === "Identifier") {
             const name = (d.id as unknown as { name: string }).name;
-            if (isPascalCase(name) && d.init && ((d.init as ASTNode).type === "ArrowFunctionExpression" || (d.init as ASTNode).type === "FunctionExpression"))
+            if (
+              isPascalCase(name) &&
+              d.init &&
+              ((d.init as ASTNode).type === "ArrowFunctionExpression" ||
+                (d.init as ASTNode).type === "FunctionExpression")
+            )
               return name;
           }
         }
       }
-      if (decl?.type === "FunctionDeclaration" || decl?.type === "ClassDeclaration") {
+      if (
+        decl?.type === "FunctionDeclaration" ||
+        decl?.type === "ClassDeclaration"
+      ) {
         const id = decl.id as unknown as { name?: string } | undefined;
         if (id?.name) return id.name;
       }
@@ -74,20 +99,41 @@ function isExportedComponent(ast: ASTNode): boolean {
     const n = stmt as ASTNode;
     if (n.type === "ExportDefaultDeclaration") {
       const decl = n.declaration as ASTNode;
-      if (decl.type === "FunctionDeclaration" || decl.type === "ClassDeclaration") return true;
+      if (
+        decl.type === "FunctionDeclaration" ||
+        decl.type === "ClassDeclaration"
+      )
+        return true;
       if (decl.type === "Identifier") return true;
-      if (decl.type === "ArrowFunctionExpression" || decl.type === "FunctionExpression") return true;
+      if (
+        decl.type === "ArrowFunctionExpression" ||
+        decl.type === "FunctionExpression"
+      )
+        return true;
       if (decl.type === "CallExpression") return true;
     }
     if (n.type === "ExportNamedDeclaration") {
       const decl = n.declaration as ASTNode | undefined;
       if (decl?.type === "VariableDeclaration") {
-        for (const d of (decl.declarations as Array<{ id: ASTNode; init?: ASTNode }>) ?? []) {
-          if (d.id?.type === "Identifier" && isPascalCase((d.id as unknown as { name: string }).name) && d.init && ((d.init as ASTNode).type === "ArrowFunctionExpression" || (d.init as ASTNode).type === "FunctionExpression"))
+        for (const d of (decl.declarations as Array<{
+          id: ASTNode;
+          init?: ASTNode;
+        }>) ?? []) {
+          if (
+            d.id?.type === "Identifier" &&
+            isPascalCase((d.id as unknown as { name: string }).name) &&
+            d.init &&
+            ((d.init as ASTNode).type === "ArrowFunctionExpression" ||
+              (d.init as ASTNode).type === "FunctionExpression")
+          )
             return true;
         }
       }
-      if (decl?.type === "FunctionDeclaration" || decl?.type === "ClassDeclaration") return true;
+      if (
+        decl?.type === "FunctionDeclaration" ||
+        decl?.type === "ClassDeclaration"
+      )
+        return true;
     }
   }
   return false;
@@ -95,7 +141,8 @@ function isExportedComponent(ast: ASTNode): boolean {
 
 export function isReactComponent(fullPath: string, content: string): boolean {
   const ext = path.extname(fullPath);
-  if (ext !== ".tsx" && ext !== ".jsx" && ext !== ".ts" && ext !== ".js") return false;
+  if (ext !== ".tsx" && ext !== ".jsx" && ext !== ".ts" && ext !== ".js")
+    return false;
   try {
     const ast = parse(content, {
       filePath: fullPath,
@@ -110,7 +157,10 @@ export function isReactComponent(fullPath: string, content: string): boolean {
   }
 }
 
-export function getComponentName(fullPath: string, content: string): string | null {
+export function getComponentName(
+  fullPath: string,
+  content: string
+): string | null {
   try {
     const ast = parse(content, {
       filePath: fullPath,

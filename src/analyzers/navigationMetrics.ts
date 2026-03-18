@@ -3,13 +3,23 @@ import path from "path";
 import fg from "fast-glob";
 import type { NavigationMetricsResult } from "../interfaces/NavigationMetricsResult.js";
 import type { ComponentNode } from "../interfaces/ComponentNode.js";
-import { isReactComponent, getComponentName } from "../utils/componentDetection.js";
+import {
+  isReactComponent,
+  getComponentName,
+} from "../utils/componentDetection.js";
 
-export async function analyzeComponentNavigation(options: { rootPath: string }): Promise<NavigationMetricsResult> {
+export async function analyzeComponentNavigation(options: {
+  rootPath: string;
+}): Promise<NavigationMetricsResult> {
   const rootPath = path.resolve(options.rootPath);
   const files = fg.sync(["**/*.{tsx,jsx,ts,js}"], {
     cwd: rootPath,
-    ignore: ["**/node_modules/**", "**/dist/**", "**/build/**", "**/coverage/**"],
+    ignore: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+    ],
     absolute: true,
   });
 
@@ -25,7 +35,9 @@ export async function analyzeComponentNavigation(options: { rootPath: string }):
       name = path.basename(path.dirname(file));
     }
 
-    const childrenMatches = Array.from(content.matchAll(/<([A-Z][a-zA-Z0-9]*)\b/g)).map((m) => m[1] as string);
+    const childrenMatches = Array.from(
+      content.matchAll(/<([A-Z][a-zA-Z0-9]*)\b/g)
+    ).map((m) => m[1] as string);
     const childrenNames = Array.from(new Set(childrenMatches));
 
     if (!componentsByName.has(name)) {
@@ -54,7 +66,9 @@ export async function analyzeComponentNavigation(options: { rootPath: string }):
     }
   }
 
-  const roots = Array.from(componentsByName.values()).filter((n) => n.parents.length === 0);
+  const roots = Array.from(componentsByName.values()).filter(
+    (n) => n.parents.length === 0
+  );
   for (const node of componentsByName.values()) {
     delete node.depth;
   }

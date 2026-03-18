@@ -1,7 +1,10 @@
 import chalk from "chalk";
 import type { NavigationMetricsResult } from "../interfaces/NavigationMetricsResult.js";
 
-export const printNavigationMetrics = (result: NavigationMetricsResult, targetDir: string) => {
+export const printNavigationMetrics = (
+  result: NavigationMetricsResult,
+  targetDir: string
+) => {
   const sortedComponents = [...result.components].sort((a, b) => {
     const depthA = a.depth ?? Infinity;
     const depthB = b.depth ?? Infinity;
@@ -13,7 +16,11 @@ export const printNavigationMetrics = (result: NavigationMetricsResult, targetDi
   const roots = sortedComponents.filter((c) => c.parents.length === 0);
   const componentMap = new Map(result.components.map((c) => [c.name, c]));
 
-  const printTree = (nodeName: string, indent: string, visited: Set<string>) => {
+  const printTree = (
+    nodeName: string,
+    indent: string,
+    visited: Set<string>
+  ) => {
     const node = componentMap.get(nodeName);
     if (!node) {
       console.log(`${indent}-> ${chalk.gray(nodeName)}`);
@@ -22,7 +29,9 @@ export const printNavigationMetrics = (result: NavigationMetricsResult, targetDi
 
     if (indent !== "") {
       const childrenInfo =
-        node.children.length > 0 ? ` ${chalk.gray(`(${node.children.length} children)`)}` : "";
+        node.children.length > 0
+          ? ` ${chalk.gray(`(${node.children.length} children)`)}`
+          : "";
       console.log(`${indent}-> ${node.name}${childrenInfo}`);
     } else {
       console.log(chalk.green(`${node.name}:`));
@@ -48,4 +57,3 @@ export const printNavigationMetrics = (result: NavigationMetricsResult, targetDi
     console.log();
   });
 };
-
