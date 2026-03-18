@@ -2,6 +2,7 @@ import fs from "fs";
 import chalk from "chalk";
 import { analyzeComponentNavigation } from "../analyzers/navigationMetrics.js";
 import { printNavigationMetrics } from "../display/navigationMetrics.js";
+import { consoleColor } from "../utils/colorFunction.js";
 
 export const parentsHandler = async (argv: {
   path?: string;
@@ -17,7 +18,12 @@ export const parentsHandler = async (argv: {
   const result = await analyzeComponentNavigation({ rootPath: targetDir });
 
   if (result.totalComponents === 0) {
-    console.log(chalk.yellow("\nNo React components found.\n"));
+    console.log(
+      consoleColor(
+        { type: "ansi", color: "yellow" },
+        "\nNo React components found.\n"
+      )
+    );
     return;
   }
 

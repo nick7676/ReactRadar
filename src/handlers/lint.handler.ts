@@ -4,6 +4,7 @@ import Table from "cli-table3";
 import { ESLint } from "eslint";
 import globals from "globals";
 import { findComponent } from "../utils/findComponent.js";
+import { consoleColor } from "../utils/colorFunction.js";
 
 export const lintHandler = async (argv: {
   path?: string;
@@ -19,7 +20,12 @@ export const lintHandler = async (argv: {
   const files = (await findComponent(targetDir)).map((f) => f.name);
 
   if (!files.length) {
-    console.log(chalk.yellow("\nNo React components found.\n"));
+    console.log(
+      consoleColor(
+        { type: "ansi", color: "yellow" },
+        "\nNo React components found.\n"
+      )
+    );
     return;
   }
 
@@ -82,7 +88,12 @@ export const lintHandler = async (argv: {
   );
 
   if (!flat.length) {
-    console.log(chalk.green("\n✔ No issues found.\n"));
+    console.log(
+      consoleColor(
+        { type: "ansi", color: "green" },
+        "\n✔ No issues found.\n"
+      )
+    );
     return;
   }
 
@@ -91,7 +102,12 @@ export const lintHandler = async (argv: {
     return;
   }
 
-  console.log(chalk.blue(`\nReactRadar Lint Results (${targetDir})\n`));
+  console.log(
+    consoleColor(
+      { type: "keyword", value: "blue" },
+      `\nReactRadar Lint Results (${targetDir})\n`
+    )
+  );
 
   const table = new Table({
     head: [
@@ -124,8 +140,14 @@ export const lintHandler = async (argv: {
   const errors = flat.filter((i) => i.severity === "error").length;
   const warns = flat.filter((i) => i.severity === "warn").length;
   console.log(
-    `\n${chalk.red.bold(`${errors} error(s)`)}  ${chalk.yellow(
-      `${warns} warning(s)`
-    )}\n`
+    consoleColor(
+      { type: "keyword", value: "red" },
+      `\n${errors} error(s)`
+    ) +
+      "  " +
+      consoleColor(
+        { type: "keyword", value: "yellow" },
+        `${warns} warning(s)\n`
+      )
   );
 };
