@@ -1,13 +1,19 @@
 import fs from "fs/promises";
 import path from "path";
 import fg from "fast-glob";
-import { isReactComponent } from "./componentDetection.js";
+import { detectComponent } from "./componentDetection.js";
+
+export interface ComponentFile {
+  filePath: string;
+  componentName: string;
+  loc: number;
+}
 
 export const findComponent = async (
   dirPath: string
-): Promise<{ name: string; loc: number }[]> => {
+): Promise<ComponentFile[]> => {
   const rootPath = path.resolve(dirPath);
-  const files = fg.sync(["**/*.{tsx,jsx,ts,js}"], {
+  const files = await fg(["**/*.{tsx,jsx,ts,js}"], {
     cwd: rootPath,
     ignore: [
       "**/node_modules/**",
@@ -18,17 +24,19 @@ export const findComponent = async (
     absolute: true,
   });
 
-  const results: { name: string; loc: number }[] = [];
-
-  await Promise.all(
+  const detected = await Promise.all(
     files.map(async (file) => {
       const content = await fs.readFile(file, "utf8");
-      if (isReactComponent(file, content)) {
-        const loc = content.split("\n").length;
-        results.push({ name: file, loc });
-      }
+      const info = detectComponent(file, content);
+      if (!info.isComponent) return null;
+      const loc = content.split("\n").length;
+      const componentName =
+        info.name ?? path.basename(file, path.extname(file));
+      return { filePath: file, componentName, loc } satisfies ComponentFile;
     })
   );
 
-  return results;
+  return detected
+    .filter((r): r is ComponentFile => r !== null)
+    .sort((a, b) => a.filePath.localeCompare(b.filePath));
 };
