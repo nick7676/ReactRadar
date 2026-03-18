@@ -1,8 +1,8 @@
-import fs from "fs/promises";
 import chalk from "chalk";
 import { table } from "../display/table.js";
 import { findComponent } from "../utils/findComponent.js";
 import { consoleColor } from "../utils/colorFunction.js";
+import { validateDirectory } from "../utils/validateDirectory.js";
 
 export const analyzeHandler = async (argv: {
   path?: string;
@@ -11,10 +11,11 @@ export const analyzeHandler = async (argv: {
   const targetDir = argv.path || process.cwd();
 
   try {
-    await fs.access(targetDir);
-  } catch {
-    console.error(chalk.red(`\nNo directory found: ${targetDir}\n`));
-    process.exit(1);
+    await validateDirectory(targetDir);
+  } catch (err) {
+    console.error(chalk.red(`\n${(err as Error).message}\n`));
+    process.exitCode = 1;
+    return;
   }
 
   console.log(

@@ -5,8 +5,7 @@ type ASTNode = { type: string; [k: string]: unknown };
 
 function walk(node: ASTNode, fn: (n: ASTNode) => boolean): boolean {
   if (fn(node)) return true;
-  const keys = Object.keys(node) as (keyof ASTNode)[];
-  for (const key of keys) {
+  for (const key of Object.keys(node)) {
     if (key === "type" || key === "loc" || key === "range" || key === "parent")
       continue;
     const val = node[key];
@@ -32,27 +31,35 @@ function hasJSX(ast: ASTNode): boolean {
 }
 
 function isPascalCase(s: string): boolean {
-  return /^[A-Z][a-zA-Z0-9]*$/.test(s) && s.length > 0;
+  return /^[A-Z][a-zA-Z0-9]*$/.test(s);
+}
+
+interface IdLike {
+  name?: string;
+}
+
+interface DeclaratorLike {
+  id: ASTNode;
+  init?: ASTNode;
 }
 
 function getExportedComponentName(ast: ASTNode): string | null {
   const body = (ast as { body?: ASTNode[] }).body;
   if (!Array.isArray(body)) return null;
+
   for (const stmt of body) {
-    const n = stmt as ASTNode;
-    if (n.type === "ExportDefaultDeclaration") {
-      const decl = n.declaration as ASTNode;
+    if (stmt.type === "ExportDefaultDeclaration") {
+      const decl = stmt.declaration as ASTNode;
       if (
         decl.type === "FunctionDeclaration" ||
         decl.type === "ClassDeclaration"
       ) {
-        const id = decl.id as unknown as { name?: string } | undefined;
-        if (id?.name && isPascalCase(id.name)) return id.name;
+        const id = decl.id as IdLike | undefined;
         if (id?.name) return id.name;
       }
       if (decl.type === "Identifier") {
-        const name = (decl as unknown as { name?: string }).name;
-        if (name) return name;
+        const id = decl as unknown as IdLike;
+        if (id.name) return id.name;
       }
       if (
         decl.type === "CallExpression" ||
@@ -61,15 +68,13 @@ function getExportedComponentName(ast: ASTNode): string | null {
       )
         return null;
     }
-    if (n.type === "ExportNamedDeclaration") {
-      const decl = n.declaration as ASTNode | undefined;
+
+    if (stmt.type === "ExportNamedDeclaration") {
+      const decl = stmt.declaration as ASTNode | undefined;
       if (decl?.type === "VariableDeclaration") {
-        const declarations = decl.declarations as
-          | Array<{ id: ASTNode; init?: ASTNode }>
-          | undefined;
-        for (const d of declarations ?? []) {
+        for (const d of (decl.declarations as DeclaratorLike[]) ?? []) {
           if (d.id?.type === "Identifier") {
-            const name = (d.id as unknown as { name: string }).name;
+            const name = (d.id as unknown as IdLike).name!;
             if (
               isPascalCase(name) &&
               d.init &&
@@ -84,7 +89,7 @@ function getExportedComponentName(ast: ASTNode): string | null {
         decl?.type === "FunctionDeclaration" ||
         decl?.type === "ClassDeclaration"
       ) {
-        const id = decl.id as unknown as { name?: string } | undefined;
+        const id = decl.id as IdLike | undefined;
         if (id?.name) return id.name;
       }
     }
@@ -92,36 +97,31 @@ function getExportedComponentName(ast: ASTNode): string | null {
   return null;
 }
 
-function isExportedComponent(ast: ASTNode): boolean {
+function hasExportedComponent(ast: ASTNode): boolean {
   const body = (ast as { body?: ASTNode[] }).body;
   if (!Array.isArray(body)) return false;
+
   for (const stmt of body) {
-    const n = stmt as ASTNode;
-    if (n.type === "ExportDefaultDeclaration") {
-      const decl = n.declaration as ASTNode;
+    if (stmt.type === "ExportDefaultDeclaration") {
+      const decl = stmt.declaration as ASTNode;
       if (
         decl.type === "FunctionDeclaration" ||
-        decl.type === "ClassDeclaration"
-      )
-        return true;
-      if (decl.type === "Identifier") return true;
-      if (
+        decl.type === "ClassDeclaration" ||
+        decl.type === "Identifier" ||
         decl.type === "ArrowFunctionExpression" ||
-        decl.type === "FunctionExpression"
+        decl.type === "FunctionExpression" ||
+        decl.type === "CallExpression"
       )
         return true;
-      if (decl.type === "CallExpression") return true;
     }
-    if (n.type === "ExportNamedDeclaration") {
-      const decl = n.declaration as ASTNode | undefined;
+
+    if (stmt.type === "ExportNamedDeclaration") {
+      const decl = stmt.declaration as ASTNode | undefined;
       if (decl?.type === "VariableDeclaration") {
-        for (const d of (decl.declarations as Array<{
-          id: ASTNode;
-          init?: ASTNode;
-        }>) ?? []) {
+        for (const d of (decl.declarations as DeclaratorLike[]) ?? []) {
           if (
             d.id?.type === "Identifier" &&
-            isPascalCase((d.id as unknown as { name: string }).name) &&
+            isPascalCase((d.id as unknown as IdLike).name!) &&
             d.init &&
             ((d.init as ASTNode).type === "ArrowFunctionExpression" ||
               (d.init as ASTNode).type === "FunctionExpression")
@@ -139,7 +139,14 @@ function isExportedComponent(ast: ASTNode): boolean {
   return false;
 }
 
-function parseContent(fullPath: string, content: string): ASTNode | null {
+export interface ComponentDetectionResult {
+  isComponent: boolean;
+  name: string | null;
+}
+
+const VALID_EXTS = new Set([".tsx", ".jsx", ".ts", ".js"]);
+
+export function parseFile(fullPath: string, content: string): ASTNode | null {
   try {
     return parse(content, {
       filePath: fullPath,
@@ -152,25 +159,34 @@ function parseContent(fullPath: string, content: string): ASTNode | null {
   }
 }
 
-export function isReactComponent(fullPath: string, content: string): boolean {
+export function detectComponent(
+  fullPath: string,
+  content: string
+): ComponentDetectionResult {
   const ext = path.extname(fullPath);
-  if (ext !== ".tsx" && ext !== ".jsx" && ext !== ".ts" && ext !== ".js")
-    return false;
-  const ast = parseContent(fullPath, content);
-  if (!ast) return false;
-  if (hasJSX(ast)) return true;
+  if (!VALID_EXTS.has(ext)) return { isComponent: false, name: null };
+
+  const ast = parseFile(fullPath, content);
+  if (!ast) return { isComponent: false, name: null };
+
+  const name = getExportedComponentName(ast);
+
+  if (hasJSX(ast)) return { isComponent: true, name };
+
   if (ext === ".ts" || ext === ".js") {
-    const name = getExportedComponentName(ast);
-    return name !== null && isPascalCase(name);
+    return { isComponent: name !== null && isPascalCase(name), name };
   }
-  return isExportedComponent(ast);
+
+  return { isComponent: hasExportedComponent(ast), name };
+}
+
+export function isReactComponent(fullPath: string, content: string): boolean {
+  return detectComponent(fullPath, content).isComponent;
 }
 
 export function getComponentName(
   fullPath: string,
   content: string
 ): string | null {
-  const ast = parseContent(fullPath, content);
-  if (!ast) return null;
-  return getExportedComponentName(ast);
+  return detectComponent(fullPath, content).name;
 }

@@ -1,10 +1,10 @@
-import fs from "fs/promises";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { ESLint } from "eslint";
 import globals from "globals";
 import { findComponent } from "../utils/findComponent.js";
 import { consoleColor } from "../utils/colorFunction.js";
+import { validateDirectory } from "../utils/validateDirectory.js";
 
 export const lintHandler = async (argv: {
   path?: string;
@@ -13,13 +13,14 @@ export const lintHandler = async (argv: {
   const targetDir = argv.path || process.cwd();
 
   try {
-    await fs.access(targetDir);
-  } catch {
-    console.error(chalk.red(`\nNo directory found: ${targetDir}\n`));
-    process.exit(1);
+    await validateDirectory(targetDir);
+  } catch (err) {
+    console.error(chalk.red(`\n${(err as Error).message}\n`));
+    process.exitCode = 1;
+    return;
   }
 
-  const files = (await findComponent(targetDir)).map((f) => f.name);
+  const files = (await findComponent(targetDir)).map((f) => f.filePath);
 
   if (!files.length) {
     console.log(
@@ -31,7 +32,6 @@ export const lintHandler = async (argv: {
     return;
   }
 
-  // ESLint flat-config plugin/parser objects lack stable public types
   const tsPlugin = (await import("@typescript-eslint/eslint-plugin")).default;
   const tsParser = (await import("@typescript-eslint/parser")).default;
   const plugins: Record<string, unknown> = { "@typescript-eslint": tsPlugin };
@@ -40,8 +40,10 @@ export const lintHandler = async (argv: {
     "no-undef": "error",
     "no-unreachable": "error",
   };
+
   try {
-    const reactHooksPlugin = (await import("eslint-plugin-react-hooks")).default;
+    const reactHooksPlugin = (await import("eslint-plugin-react-hooks"))
+      .default;
     plugins["react-hooks"] = reactHooksPlugin;
     rules["react-hooks/rules-of-hooks"] = "error";
     rules["react-hooks/exhaustive-deps"] = "warn";
@@ -53,7 +55,6 @@ export const lintHandler = async (argv: {
     );
   }
 
-  // ESLint flat-config object types don't align with dynamic plugin imports
   const overrideConfig = {
     files: ["**/*.{js,jsx,ts,tsx}"],
     plugins,
@@ -77,7 +78,9 @@ export const lintHandler = async (argv: {
 
   const eslint = new ESLint({
     overrideConfigFile: true,
-    overrideConfig: [overrideConfig] as unknown as ESLint.Options["overrideConfig"],
+    overrideConfig: [
+      overrideConfig,
+    ] as unknown as ESLint.Options["overrideConfig"],
   });
 
   const results = await eslint.lintFiles(files);
@@ -87,7 +90,7 @@ export const lintHandler = async (argv: {
       file: r.filePath,
       line: m.line,
       col: m.column,
-      severity: m.severity === 2 ? "error" : "warn",
+      severity: m.severity === 2 ? "error" : ("warn" as const),
       message: m.message,
       rule: m.ruleId ?? "unknown",
     }))
