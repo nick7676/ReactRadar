@@ -37,5 +37,5 @@ export const table = (files: { name: string; loc: number }[]) => {
     ]);
   });
 
-  console.log(t.toString());
+  return t.toString();
 };

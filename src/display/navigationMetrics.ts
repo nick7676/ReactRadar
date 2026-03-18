@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import type { NavigationMetricsResult } from "../interfaces/NavigationMetricsResult.js";
+import { consoleColor } from "../utils/colorFunction.js";
 
 export const printNavigationMetrics = (
   result: NavigationMetricsResult,
@@ -12,7 +13,12 @@ export const printNavigationMetrics = (
     return a.name.localeCompare(b.name);
   });
 
-  console.log(chalk.blue(`Component Render Tree:\n`));
+  console.log(
+    consoleColor(
+      { type: "keyword", value: "blue" },
+      "Component Render Tree:\n"
+    )
+  );
   const roots = sortedComponents.filter((c) => c.parents.length === 0);
   const componentMap = new Map(result.components.map((c) => [c.name, c]));
 
@@ -23,7 +29,12 @@ export const printNavigationMetrics = (
   ) => {
     const node = componentMap.get(nodeName);
     if (!node) {
-      console.log(`${indent}-> ${chalk.gray(nodeName)}`);
+      console.log(
+        `${indent}-> ${consoleColor(
+          { type: "keyword", value: "gray" },
+          nodeName
+        )}`
+      );
       return;
     }
 
@@ -34,12 +45,22 @@ export const printNavigationMetrics = (
           : "";
       console.log(`${indent}-> ${node.name}${childrenInfo}`);
     } else {
-      console.log(chalk.green(`${node.name}:`));
+      console.log(
+        consoleColor(
+          { type: "keyword", value: "green" },
+          `${node.name}:`
+        )
+      );
     }
 
     if (visited.has(node.name)) {
       if (node.children.length > 0) {
-        console.log(`${indent}  ${chalk.red("[Circular]")}`);
+        console.log(
+          `${indent}  ${consoleColor(
+            { type: "keyword", value: "red" },
+            "[Circular]"
+          )}`
+        );
       }
       return;
     }
