@@ -1,7 +1,8 @@
 import chalk from "chalk";
-import fs from "fs";
 import { table } from "../display/table.js";
 import { findComponent } from "../utils/findComponent.js";
+import { consoleColor } from "../utils/colorFunction.js";
+import { validateDirectory } from "../utils/validateDirectory.js";
 
 export const analyzeHandler = async (argv: {
   path?: string;
@@ -9,17 +10,30 @@ export const analyzeHandler = async (argv: {
 }) => {
   const targetDir = argv.path || process.cwd();
 
-  if (!fs.existsSync(targetDir)) {
-    console.log(chalk.red(`\nNo directory found: ${targetDir}\n`));
+  try {
+    await validateDirectory(targetDir);
+  } catch (err) {
+    console.error(chalk.red(`\n${(err as Error).message}\n`));
+    process.exitCode = 1;
     return;
   }
 
-  console.log(chalk.blue(`\nReactRadar is scanning: ${targetDir}\n`));
+  console.log(
+    consoleColor(
+      { type: "keyword", value: "blue" },
+      `\nReactRadar is scanning: ${targetDir}\n`
+    )
+  );
 
   const files = await findComponent(targetDir);
 
   if (!files.length) {
-    console.log(chalk.yellow("No components found."));
+    console.log(
+      consoleColor(
+        { type: "ansi", color: "yellow" },
+        "No components found."
+      )
+    );
     return;
   }
 
@@ -28,5 +42,5 @@ export const analyzeHandler = async (argv: {
     return;
   }
 
-  table(files);
+  console.log(table(files));
 };

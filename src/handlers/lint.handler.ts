@@ -1,9 +1,10 @@
-import fs from "fs";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { ESLint } from "eslint";
 import globals from "globals";
 import { findComponent } from "../utils/findComponent.js";
+import { consoleColor } from "../utils/colorFunction.js";
+import { validateDirectory } from "../utils/validateDirectory.js";
 
 export const lintHandler = async (argv: {
   path?: string;
@@ -11,61 +12,75 @@ export const lintHandler = async (argv: {
 }) => {
   const targetDir = argv.path || process.cwd();
 
-  if (!fs.existsSync(targetDir)) {
-    console.error(chalk.red(`\nNo directory found: ${targetDir}\n`));
-    process.exit(1);
-  }
-
-  const files = (await findComponent(targetDir)).map((f) => f.name);
-
-  if (!files.length) {
-    console.log(chalk.yellow("\nNo React components found.\n"));
+  try {
+    await validateDirectory(targetDir);
+  } catch (err) {
+    console.error(chalk.red(`\n${(err as Error).message}\n`));
+    process.exitCode = 1;
     return;
   }
 
-  const tsPlugin = (await import("@typescript-eslint/eslint-plugin"))
-    .default as any;
-  const tsParser = (await import("@typescript-eslint/parser")).default as any;
-  const plugins: Record<string, any> = { "@typescript-eslint": tsPlugin };
-  const rules: Record<string, any> = {
+  const files = (await findComponent(targetDir)).map((f) => f.filePath);
+
+  if (!files.length) {
+    console.log(
+      consoleColor(
+        { type: "ansi", color: "yellow" },
+        "\nNo React components found.\n"
+      )
+    );
+    return;
+  }
+
+  const tsPlugin = (await import("@typescript-eslint/eslint-plugin")).default;
+  const tsParser = (await import("@typescript-eslint/parser")).default;
+  const plugins: Record<string, unknown> = { "@typescript-eslint": tsPlugin };
+  const rules: Record<string, unknown> = {
     "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     "no-undef": "error",
     "no-unreachable": "error",
   };
+
   try {
     const reactHooksPlugin = (await import("eslint-plugin-react-hooks"))
-      .default as any;
+      .default;
     plugins["react-hooks"] = reactHooksPlugin;
     rules["react-hooks/rules-of-hooks"] = "error";
     rules["react-hooks/exhaustive-deps"] = "warn";
   } catch {
-    /* optional */
+    console.warn(
+      chalk.yellow(
+        "Warning: eslint-plugin-react-hooks not installed — hooks rules skipped."
+      )
+    );
   }
+
+  const overrideConfig = {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    plugins,
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+        React: "readonly",
+        JSX: "readonly",
+      },
+    },
+    rules,
+  };
 
   const eslint = new ESLint({
     overrideConfigFile: true,
     overrideConfig: [
-      {
-        files: ["**/*.{js,jsx,ts,tsx}"],
-        plugins,
-        languageOptions: {
-          parser: tsParser,
-          parserOptions: {
-            ecmaVersion: "latest",
-            sourceType: "module",
-            ecmaFeatures: { jsx: true },
-          },
-          globals: {
-            ...globals.browser,
-            ...globals.node,
-            ...globals.es2021,
-            React: "readonly",
-            JSX: "readonly",
-          },
-        },
-        rules,
-      },
-    ],
+      overrideConfig,
+    ] as unknown as ESLint.Options["overrideConfig"],
   });
 
   const results = await eslint.lintFiles(files);
@@ -75,14 +90,19 @@ export const lintHandler = async (argv: {
       file: r.filePath,
       line: m.line,
       col: m.column,
-      severity: m.severity === 2 ? "error" : "warn",
+      severity: m.severity === 2 ? "error" : ("warn" as const),
       message: m.message,
       rule: m.ruleId ?? "unknown",
     }))
   );
 
   if (!flat.length) {
-    console.log(chalk.green("\n✔ No issues found.\n"));
+    console.log(
+      consoleColor(
+        { type: "ansi", color: "green" },
+        "\n✔ No issues found.\n"
+      )
+    );
     return;
   }
 
@@ -91,7 +111,12 @@ export const lintHandler = async (argv: {
     return;
   }
 
-  console.log(chalk.blue(`\nReactRadar Lint Results (${targetDir})\n`));
+  console.log(
+    consoleColor(
+      { type: "keyword", value: "blue" },
+      `\nReactRadar Lint Results (${targetDir})\n`
+    )
+  );
 
   const table = new Table({
     head: [
@@ -124,8 +149,14 @@ export const lintHandler = async (argv: {
   const errors = flat.filter((i) => i.severity === "error").length;
   const warns = flat.filter((i) => i.severity === "warn").length;
   console.log(
-    `\n${chalk.red.bold(`${errors} error(s)`)}  ${chalk.yellow(
-      `${warns} warning(s)`
-    )}\n`
+    consoleColor(
+      { type: "keyword", value: "red" },
+      `\n${errors} error(s)`
+    ) +
+      "  " +
+      consoleColor(
+        { type: "keyword", value: "yellow" },
+        `${warns} warning(s)\n`
+      )
   );
 };

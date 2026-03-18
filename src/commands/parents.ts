@@ -1,25 +1,14 @@
 import type { CommandModule } from "yargs";
 import { parentsHandler } from "../handlers/parents.handler.js";
+import type { SharedArgv } from "./sharedOptions.js";
+import { sharedOptions } from "./sharedOptions.js";
 
-export const parentsCommand: CommandModule = {
+export const parentsCommand: CommandModule<{}, SharedArgv> = {
   command: "parents",
   describe:
     "Analyze static parent-child relationships between React components",
-  builder: (yargs) =>
-    yargs
-      .option("format", {
-        alias: "f",
-        type: "string",
-        choices: ["table", "json"] as const,
-        default: "table",
-        description: "Output format",
-      })
-      .option("path", {
-        alias: "p",
-        type: "string",
-        description: "Directory to scan (default: ./src)",
-      }),
+  builder: (yargs) => sharedOptions(yargs),
   handler: (argv) => {
-    parentsHandler(argv as any);
+    parentsHandler(argv);
   },
 };

@@ -3,7 +3,7 @@ export interface ComponentNode {
   filePath: string;
   children: string[];
   parents: string[];
-  depth?: number;
+  depth?: number | undefined;
 }
 
 export type ComponentGraph = Map<string, ComponentNode>;
