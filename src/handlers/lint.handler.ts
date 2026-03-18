@@ -31,49 +31,53 @@ export const lintHandler = async (argv: {
     return;
   }
 
-  const tsPlugin = (await import("@typescript-eslint/eslint-plugin"))
-    .default as any;
-  const tsParser = (await import("@typescript-eslint/parser")).default as any;
-  const plugins: Record<string, any> = { "@typescript-eslint": tsPlugin };
-  const rules: Record<string, any> = {
+  // ESLint flat-config plugin/parser objects lack stable public types
+  const tsPlugin = (await import("@typescript-eslint/eslint-plugin")).default;
+  const tsParser = (await import("@typescript-eslint/parser")).default;
+  const plugins: Record<string, unknown> = { "@typescript-eslint": tsPlugin };
+  const rules: Record<string, unknown> = {
     "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     "no-undef": "error",
     "no-unreachable": "error",
   };
   try {
-    const reactHooksPlugin = (await import("eslint-plugin-react-hooks"))
-      .default as any;
+    const reactHooksPlugin = (await import("eslint-plugin-react-hooks")).default;
     plugins["react-hooks"] = reactHooksPlugin;
     rules["react-hooks/rules-of-hooks"] = "error";
     rules["react-hooks/exhaustive-deps"] = "warn";
   } catch {
-    /* optional */
+    console.warn(
+      chalk.yellow(
+        "Warning: eslint-plugin-react-hooks not installed — hooks rules skipped."
+      )
+    );
   }
+
+  // ESLint flat-config object types don't align with dynamic plugin imports
+  const overrideConfig = {
+    files: ["**/*.{js,jsx,ts,tsx}"],
+    plugins,
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: "latest",
+        sourceType: "module",
+        ecmaFeatures: { jsx: true },
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+        React: "readonly",
+        JSX: "readonly",
+      },
+    },
+    rules,
+  };
 
   const eslint = new ESLint({
     overrideConfigFile: true,
-    overrideConfig: [
-      {
-        files: ["**/*.{js,jsx,ts,tsx}"],
-        plugins,
-        languageOptions: {
-          parser: tsParser,
-          parserOptions: {
-            ecmaVersion: "latest",
-            sourceType: "module",
-            ecmaFeatures: { jsx: true },
-          },
-          globals: {
-            ...globals.browser,
-            ...globals.node,
-            ...globals.es2021,
-            React: "readonly",
-            JSX: "readonly",
-          },
-        },
-        rules,
-      },
-    ],
+    overrideConfig: [overrideConfig] as unknown as ESLint.Options["overrideConfig"],
   });
 
   const results = await eslint.lintFiles(files);

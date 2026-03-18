@@ -8,6 +8,13 @@ import {
   getComponentName,
 } from "../utils/componentDetection.js";
 
+function stripCommentsAndStrings(code: string): string {
+  return code.replace(
+    /\/\/.*|\/\*[\s\S]*?\*\/|`(?:[^`\\]|\\.)*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g,
+    ""
+  );
+}
+
 export async function analyzeComponentNavigation(options: {
   rootPath: string;
 }): Promise<NavigationMetricsResult> {
@@ -35,8 +42,9 @@ export async function analyzeComponentNavigation(options: {
       name = path.basename(path.dirname(file));
     }
 
+    const stripped = stripCommentsAndStrings(content);
     const childrenMatches = Array.from(
-      content.matchAll(/<([A-Z][a-zA-Z0-9]*)\b/g)
+      stripped.matchAll(/<([A-Z][a-zA-Z0-9]*)\b/g)
     ).map((m) => m[1] as string);
     const childrenNames = Array.from(new Set(childrenMatches));
 
@@ -74,16 +82,18 @@ export async function analyzeComponentNavigation(options: {
     delete node.depth;
   }
 
+  const visited = new Set<string>();
   const queue = roots.map((r) => ({ node: r, depth: 0 }));
 
   while (queue.length > 0) {
     const { node, depth } = queue.shift()!;
-    if (node.depth !== undefined && depth >= node.depth) continue;
+    if (visited.has(node.name)) continue;
+    visited.add(node.name);
     node.depth = depth;
 
     for (const childName of node.children) {
       const child = componentsByName.get(childName);
-      if (child && (child.depth === undefined || depth + 1 < child.depth)) {
+      if (child && !visited.has(childName)) {
         queue.push({ node: child, depth: depth + 1 });
       }
     }

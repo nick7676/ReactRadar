@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import chalk from "chalk";
 import { table } from "../display/table.js";
 import { findComponent } from "../utils/findComponent.js";
 import { consoleColor } from "../utils/colorFunction.js";
@@ -12,13 +13,8 @@ export const analyzeHandler = async (argv: {
   try {
     await fs.access(targetDir);
   } catch {
-    console.log(
-      consoleColor(
-        { type: "keyword", value: "red" },
-        `\nNo directory found: ${targetDir}\n`
-      )
-    );
-    return;
+    console.error(chalk.red(`\nNo directory found: ${targetDir}\n`));
+    process.exit(1);
   }
 
   console.log(

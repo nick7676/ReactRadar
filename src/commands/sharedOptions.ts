@@ -18,5 +18,5 @@ export const sharedOptions = <T>(yargs: Argv<T>): Argv<T & SharedArgv> =>
       alias: "p",
       type: "string",
       description: "Directory to scan",
-    });
+    }) as unknown as Argv<T & SharedArgv>;
 

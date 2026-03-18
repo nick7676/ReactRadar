@@ -158,7 +158,11 @@ export function isReactComponent(fullPath: string, content: string): boolean {
     return false;
   const ast = parseContent(fullPath, content);
   if (!ast) return false;
-  if ((ext === ".tsx" || ext === ".jsx") && hasJSX(ast)) return true;
+  if (hasJSX(ast)) return true;
+  if (ext === ".ts" || ext === ".js") {
+    const name = getExportedComponentName(ast);
+    return name !== null && isPascalCase(name);
+  }
   return isExportedComponent(ast);
 }
 

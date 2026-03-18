@@ -30,5 +30,6 @@ export const findComponent = async (
     })
   );
 
+  results.sort((a, b) => a.name.localeCompare(b.name));
   return results;
 };
