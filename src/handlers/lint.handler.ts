@@ -13,7 +13,7 @@ export const lintHandler = async (argv: { path?: string; format?: "table" | "jso
     process.exit(1);
   }
 
-  const files = findComponent(targetDir).map((f) => f.name);
+  const files = (await findComponent(targetDir)).map((f) => f.name);
 
   if (!files.length) {
     console.log(chalk.yellow("\nNo React components found.\n"));
@@ -22,16 +22,29 @@ export const lintHandler = async (argv: { path?: string; format?: "table" | "jso
 
   const tsPlugin = (await import("@typescript-eslint/eslint-plugin")).default as any;
   const tsParser = (await import("@typescript-eslint/parser")).default as any;
+  const plugins: Record<string, any> = { "@typescript-eslint": tsPlugin };
+  const rules: Record<string, any> = {
+    "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+    "no-undef": "error",
+    "no-unreachable": "error",
+  };
+  try {
+    const reactHooksPlugin = (await import("eslint-plugin-react-hooks")).default as any;
+    plugins["react-hooks"] = reactHooksPlugin;
+    rules["react-hooks/rules-of-hooks"] = "error";
+    rules["react-hooks/exhaustive-deps"] = "warn";
+  } catch {
+    /* optional */
+  }
 
   const eslint = new ESLint({
     overrideConfigFile: true,
     overrideConfig: [{
       files: ["**/*.{js,jsx,ts,tsx}"],
-      plugins: {
-        "@typescript-eslint": tsPlugin,
-      },
+      plugins,
       languageOptions: {
         parser: tsParser,
+        parserOptions: { ecmaVersion: "latest", sourceType: "module", ecmaFeatures: { jsx: true } },
         globals: {
           ...globals.browser,
           ...globals.node,
@@ -40,11 +53,7 @@ export const lintHandler = async (argv: { path?: string; format?: "table" | "jso
           JSX: "readonly",
         },
       },
-      rules: {
-        "@typescript-eslint/no-unused-vars": "off",
-        "no-undef": "off",
-        "no-unreachable": "error",
-      },
+      rules,
     }],
   });
 
