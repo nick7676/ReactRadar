@@ -9,14 +9,14 @@ export const lintCommand: CommandModule = {
       .option("format", {
         alias: "f",
         type: "string",
-        choices: ["table", "json"] as const,
+        choices: ["table"] as const,
         default: "table",
         description: "Output format",
       })
       .option("path", {
         alias: "p",
         type: "string",
-        description: "Directory to scan (default: ./src)",
+        description: "Directory to scan",
       }),
   handler: (argv) => {
     lintHandler(argv as any);
