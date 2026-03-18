@@ -3,7 +3,10 @@ import fs from "fs";
 import { table } from "../display/table.js";
 import { findComponent } from "../utils/findComponent.js";
 
-export const analyzeHandler = (argv: { path?: string }) => {
+export const analyzeHandler = async (argv: {
+  path?: string;
+  format?: "table" | "json";
+}) => {
   const targetDir = argv.path || process.cwd();
 
   if (!fs.existsSync(targetDir)) {
@@ -13,10 +16,15 @@ export const analyzeHandler = (argv: { path?: string }) => {
 
   console.log(chalk.blue(`\nReactRadar is scanning: ${targetDir}\n`));
 
-  const files = findComponent(targetDir);
+  const files = await findComponent(targetDir);
 
   if (!files.length) {
     console.log(chalk.yellow("No components found."));
+    return;
+  }
+
+  if (argv.format === "json") {
+    console.log(JSON.stringify(files, null, 2));
     return;
   }
 

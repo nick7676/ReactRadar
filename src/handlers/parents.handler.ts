@@ -26,7 +26,5 @@ export const parentsHandler = async (argv: {
     return;
   }
 
-
-
   printNavigationMetrics(result, targetDir);
 };

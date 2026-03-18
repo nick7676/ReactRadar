@@ -18,7 +18,5 @@ export const analyzeCommand: CommandModule = {
         type: "string",
         description: "Directory to scan (default: ./src)",
       }),
-  handler: (argv) => {
-    analyzeHandler(argv as any);
-  },
+  handler: (argv) => analyzeHandler(argv as any),
 };
