@@ -1,2 +1,0 @@
-
-Questa documentazione è scritta per capire il codice e la propria logica, questo è un progetto nato per imparare librerie come yargs, playwright quindi non aspettatevi qualità, come nominato dal branch questa documentazione va letta con il programma "Obsidian".

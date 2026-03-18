@@ -1,0 +1,3 @@
+
+Questa documentazione è scritta per capire il codice e la propria logica, questo è un progetto nato per imparare librerie come yargs, playwright quindi non aspettatevi qualità, come nominato dal branch questa documentazione va letta con il programma "Obsidian".
+La wiki finale in lingua inglese sarà caricata nella sezione "Wiki" di github, questo è principalmente un luogo di apprendimento "Personale"
