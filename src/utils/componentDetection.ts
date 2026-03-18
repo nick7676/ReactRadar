@@ -139,37 +139,34 @@ function isExportedComponent(ast: ASTNode): boolean {
   return false;
 }
 
-export function isReactComponent(fullPath: string, content: string): boolean {
-  const ext = path.extname(fullPath);
-  if (ext !== ".tsx" && ext !== ".jsx" && ext !== ".ts" && ext !== ".js")
-    return false;
+function parseContent(fullPath: string, content: string): ASTNode | null {
   try {
-    const ast = parse(content, {
+    return parse(content, {
       filePath: fullPath,
       ecmaVersion: "latest",
       sourceType: "module",
       ecmaFeatures: { jsx: true },
     }) as unknown as ASTNode;
-    if ((ext === ".tsx" || ext === ".jsx") && hasJSX(ast)) return true;
-    return isExportedComponent(ast);
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function isReactComponent(fullPath: string, content: string): boolean {
+  const ext = path.extname(fullPath);
+  if (ext !== ".tsx" && ext !== ".jsx" && ext !== ".ts" && ext !== ".js")
+    return false;
+  const ast = parseContent(fullPath, content);
+  if (!ast) return false;
+  if ((ext === ".tsx" || ext === ".jsx") && hasJSX(ast)) return true;
+  return isExportedComponent(ast);
 }
 
 export function getComponentName(
   fullPath: string,
   content: string
 ): string | null {
-  try {
-    const ast = parse(content, {
-      filePath: fullPath,
-      ecmaVersion: "latest",
-      sourceType: "module",
-      ecmaFeatures: { jsx: true },
-    }) as unknown as ASTNode;
-    return getExportedComponentName(ast);
-  } catch {
-    return null;
-  }
+  const ast = parseContent(fullPath, content);
+  if (!ast) return null;
+  return getExportedComponentName(ast);
 }

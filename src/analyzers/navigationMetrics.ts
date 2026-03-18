@@ -70,6 +70,7 @@ export async function analyzeComponentNavigation(options: {
     (n) => n.parents.length === 0
   );
   for (const node of componentsByName.values()) {
+    // Reset depths before BFS recomputation
     delete node.depth;
   }
 

@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import { table } from "../display/table.js";
 import { findComponent } from "../utils/findComponent.js";
 import { consoleColor } from "../utils/colorFunction.js";
@@ -9,7 +9,9 @@ export const analyzeHandler = async (argv: {
 }) => {
   const targetDir = argv.path || process.cwd();
 
-  if (!fs.existsSync(targetDir)) {
+  try {
+    await fs.access(targetDir);
+  } catch {
     console.log(
       consoleColor(
         { type: "keyword", value: "red" },

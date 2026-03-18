@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import chalk from "chalk";
 import { analyzeComponentNavigation } from "../analyzers/navigationMetrics.js";
 import { printNavigationMetrics } from "../display/navigationMetrics.js";
@@ -10,7 +10,9 @@ export const parentsHandler = async (argv: {
 }) => {
   const targetDir = argv.path || process.cwd();
 
-  if (!fs.existsSync(targetDir)) {
+  try {
+    await fs.access(targetDir);
+  } catch {
     console.error(chalk.red(`\nNo directory found: ${targetDir}\n`));
     process.exit(1);
   }

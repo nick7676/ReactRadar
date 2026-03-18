@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "fs/promises";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { ESLint } from "eslint";
@@ -12,7 +12,9 @@ export const lintHandler = async (argv: {
 }) => {
   const targetDir = argv.path || process.cwd();
 
-  if (!fs.existsSync(targetDir)) {
+  try {
+    await fs.access(targetDir);
+  } catch {
     console.error(chalk.red(`\nNo directory found: ${targetDir}\n`));
     process.exit(1);
   }

@@ -1,24 +1,14 @@
 import type { CommandModule } from "yargs";
 import { lintHandler } from "../handlers/lint.handler.js";
+import type { SharedArgv } from "./sharedOptions.js";
+import { sharedOptions } from "./sharedOptions.js";
 
-export const lintCommand: CommandModule = {
+export const lintCommand: CommandModule<{}, SharedArgv> = {
   command: "lint",
   describe: "Check for errors and unused variables in React components",
   builder: (yargs) =>
-    yargs
-      .option("format", {
-        alias: "f",
-        type: "string",
-        choices: ["table"] as const,
-        default: "table",
-        description: "Output format",
-      })
-      .option("path", {
-        alias: "p",
-        type: "string",
-        description: "Directory to scan",
-      }),
+    sharedOptions(yargs),
   handler: (argv) => {
-    lintHandler(argv as any);
+    lintHandler(argv);
   },
 };

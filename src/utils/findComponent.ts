@@ -1,31 +1,31 @@
 import fs from "fs/promises";
 import path from "path";
+import fg from "fast-glob";
 import { isReactComponent } from "./componentDetection.js";
-
-const EXCLUDED_DIRS = new Set(["node_modules", ".git", "dist", "build"]);
 
 export const findComponent = async (
   dirPath: string
 ): Promise<{ name: string; loc: number }[]> => {
-  let results: { name: string; loc: number }[] = [];
-  const list = await fs.readdir(dirPath);
+  const rootPath = path.resolve(dirPath);
+  const files = fg.sync(["**/*.{tsx,jsx,ts,js}"], {
+    cwd: rootPath,
+    ignore: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+    ],
+    absolute: true,
+  });
+
+  const results: { name: string; loc: number }[] = [];
 
   await Promise.all(
-    list.map(async (file) => {
-      const fullPath = path.join(dirPath, file);
-      const stat = await fs.stat(fullPath);
-
-      if (stat.isDirectory()) {
-        if (!EXCLUDED_DIRS.has(file)) {
-          const sub = await findComponent(fullPath);
-          results = results.concat(sub);
-        }
-      } else if (/\.(tsx|jsx|ts|js)$/.test(file)) {
-        const content = await fs.readFile(fullPath, "utf8");
-        if (isReactComponent(fullPath, content)) {
-          const loc = content.split("\n").length;
-          results.push({ name: fullPath, loc });
-        }
+    files.map(async (file) => {
+      const content = await fs.readFile(file, "utf8");
+      if (isReactComponent(file, content)) {
+        const loc = content.split("\n").length;
+        results.push({ name: file, loc });
       }
     })
   );
