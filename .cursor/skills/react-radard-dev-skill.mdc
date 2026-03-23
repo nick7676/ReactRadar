@@ -2,7 +2,7 @@
 alwaysApply: false
 ---
 name: ReactRadar CLI Developer
-description: Helps develop ReactRadar-CLI: CLI code with yargs (TypeScript), E2E testing with Playwright, refactoring and debugging.
+description: Helps develop ReactRadar-CLI: CLI code with yargs (TypeScript ESM), E2E testing with Playwright, refactoring and debugging.
 globs: ["**/*.ts", "**/*.tsx", "playwright.config.ts", "tests/**/*.spec.ts", "package.json"]
 priority: high
 ---
@@ -10,178 +10,215 @@ priority: high
 # ReactRadar CLI Development Skill
 
 ## Project Context
-ReactRadar is a CLI tool that scans React projects and produces structured reports (JSON/text).
+ReactRadar is a CLI tool that scans React projects and produces structured reports (JSON/text/table).
 Repo: https://github.com/nick7676/ReactRadar
 
-Architecture:
-- CLI entry point with yargs (TypeScript)
-- Scans a React app fixture already present in the repo
-- Outputs: text to stdout, JSON files, exit codes
-- Tests: Playwright used to spawn the CLI process and assert its output
+### Architecture
+- **Module system**: ESM (`"type": "module"` in package.json, `"module": "nodenext"` in tsconfig)
+- **CLI entry point**: `src/index.ts` — yargs with `hideBin`, registers all commands
+- **Commands** (one file each under `src/commands/`):
+  - `analyze` — find React components, report name/path/LOC
+  - `lint` — run ESLint on detected components, report issues
+  - `parents` — static parent→child analysis via JSX/import resolution
+  - `watch` — connect to localhost React app, live-monitor renders via Playwright-core
+- **Shared options**: `--path` (`-p`), `--format` (`-f` = `table` | `json`) via `sharedOptions.ts`
+- **Lint extras**: `--verbose` / `-v` writes diagnostics to stderr (stdout stays clean for `--format json`)
+- **Handlers**: `src/handlers/<command>.handler.ts` — pure logic, receives parsed argv
+- **Utilities**:
+  - `validateDirectory` — `fs.access` check, throws `"No directory found: <path>"`
+  - `findComponent` — fast-glob + AST detection → `ComponentFile[]`
+  - `componentDetection` — TS parser AST walk, detects JSX / exported PascalCase functions
+  - `colorFunction` — chalk abstraction (ansi/hex/rgb/keyword)
+- **Analyzers**: `analyzers/navigationMetrics.ts` — resolves imports, builds parent→child graph
+- **Display**: `display/table.ts`, `display/navigationMetrics.ts` — formatted console output
+- **Tests**: Playwright spawns built CLI (`dist/index.js`) and asserts stdout/stderr/exit codes
+- **Build**: `tsc -p tsconfig.json` → `dist/`
+
+### Important Conventions
+- All internal imports use `.js` extension (ESM requirement)
+- `process.exitCode = 1` instead of `process.exit(1)` in handlers (testable)
+- `NO_COLOR=1` is set in test helper to strip ANSI from output
+- Global setup runs `npm run build` before tests
 
 ---
 
 ## When to Apply
-- Writing or modifying CLI commands with yargs
-- Creating or editing Playwright tests that test CLI output (stdout, JSON, exit codes)
-- Refactoring CLI code or test helpers
-- Debugging CLI args, failed tests, or wrong output format
+- Writing or modifying CLI commands
+- Creating or editing Playwright tests for CLI output
+- Refactoring handlers, utils, or analyzers
+- Debugging CLI args, failed tests, or format issues
+- Adding new commands or options
 
 ---
 
-## Key Knowledge: Yargs (TypeScript)
+## File Structure
+```
+ReactRadar/
+├── src/
+│   ├── index.ts                  # CLI entry (yargs)
+│   ├── commands/
+│   │   ├── analyze.ts
+│   │   ├── lint.ts
+│   │   ├── parents.ts
+│   │   ├── watch.ts
+│   │   └── sharedOptions.ts
+│   ├── handlers/
+│   │   ├── analyze.handler.ts
+│   │   ├── lint.handler.ts
+│   │   ├── parents.handler.ts
+│   │   └── watch.handler.ts
+│   ├── analyzers/
+│   │   └── navigationMetrics.ts
+│   ├── display/
+│   │   ├── table.ts
+│   │   └── navigationMetrics.ts
+│   ├── interfaces/
+│   │   ├── ComponentNode.ts
+│   │   └── NavigationMetricsResult.ts
+│   └── utils/
+│       ├── colorFunction.ts
+│       ├── componentDetection.ts
+│       ├── findComponent.ts
+│       └── validateDirectory.ts
+├── tests/
+│   ├── global-setup.ts          # builds dist/ before tests
+│   ├── helpers/
+│   │   └── cli.ts               # runCLI() helper
+│   ├── fixtures/
+│   │   ├── analyze-empty/       # no React components
+│   │   ├── analyze-with-components/  # has Button.tsx
+│   │   ├── navigation/          # App→Header→Main→Content tree
+│   │   ├── lint-clean/          # components with zero lint issues
+│   │   └── lint-with-issues/    # components with intentional errors
+│   ├── analyze.spec.ts
+│   ├── lint.spec.ts
+│   ├── parents.spec.ts
+│   └── cli.spec.ts
+├── playwright.config.ts
+├── tsconfig.json
+└── package.json
+```
 
-Use `yargs` with strong typing. Standard pattern for ReactRadar commands:
+---
+
+## Key Knowledge: Yargs (TypeScript ESM)
+
+Standard command pattern used in this project:
 ```typescript
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
+import type { CommandModule } from "yargs";
+import { someHandler } from "../handlers/some.handler.js";
+import type { SharedArgv } from "./sharedOptions.js";
+import { sharedOptions } from "./sharedOptions.js";
 
-const argv = yargs(hideBin(process.argv))
-  .command('scan <project>', 'Scan React project', (yargs) => {
-    yargs
-      .positional('project', {
-        describe: 'Path to React project',
-        type: 'string',
-      })
-      .option('output', {
-        alias: 'o',
-        type: 'string',
-        default: 'radar.json',
-        describe: 'Output file path',
-      })
-      .option('format', {
-        alias: 'f',
-        type: 'string',
-        choices: ['json', 'text'],
-        default: 'json',
-      });
-  })
-  .demandCommand(1)
-  .strict()
-  .parseSync();
+export const someCommand: CommandModule<{}, SharedArgv> = {
+  command: "mycmd",
+  describe: "Does something",
+  builder: (yargs) => sharedOptions(yargs),
+  handler: (argv) => someHandler(argv),
+};
+```
+
+Shared options provide `--path` and `--format` to all commands:
+```typescript
+export const sharedOptions = <T>(yargs: Argv<T>): Argv<T & SharedArgv> =>
+  yargs
+    .option("format", { alias: "f", type: "string", choices: ["table", "json"], default: "table" })
+    .option("path", { alias: "p", type: "string" });
 ```
 
 ---
 
 ## Key Knowledge: Playwright for CLI Testing
 
-Playwright in this project is used to **spawn the CLI as a child process** and assert:
+Playwright is used to **spawn the CLI as a child process** (no browser), asserting:
 - stdout / stderr content
-- output JSON file content
 - process exit codes
+- JSON output validity
 
-### Setup pattern (`playwright.config.ts`)
+### Config (`playwright.config.ts`)
 ```typescript
-import { defineConfig } from '@playwright/test';
+import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests',
-  timeout: 30000,
-  use: {
-    // No browser needed — CLI-only testing
-  },
+  testDir: "./tests",
+  timeout: 30_000,
+  globalSetup: "./tests/global-setup.ts",  // runs tsc build
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: "html",
+  projects: [{ name: "cli" }],
 });
 ```
 
-### Test helper: spawn CLI
-
-Always use a shared helper to spawn the CLI, never inline `execSync` in tests:
+### Test Helper (`tests/helpers/cli.ts`)
 ```typescript
-// tests/helpers/cli.ts
-import { execSync, spawnSync } from 'child_process';
-import path from 'path';
+import { spawnSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const CLI_PATH = path.resolve(__dirname, '../../dist/index.js');
+const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const CLI_PATH = path.join(repoRoot, "dist/index.js");
 
-export function runCLI(args: string[]): {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-} {
-  const result = spawnSync('node', [CLI_PATH, ...args], {
-    encoding: 'utf-8',
+export function runCLI(args: string[]): { stdout: string; stderr: string; exitCode: number } {
+  const env = { ...process.env };
+  delete env.FORCE_COLOR;
+  env.NO_COLOR = "1";
+  const result = spawnSync(process.execPath, [CLI_PATH, ...args], {
+    encoding: "utf8",
+    cwd: repoRoot,
+    env,
   });
-
   return {
-    stdout: result.stdout ?? '',
-    stderr: result.stderr ?? '',
+    stdout: result.stdout ?? "",
+    stderr: result.stderr ?? "",
     exitCode: result.status ?? 1,
   };
 }
 ```
 
-### Test pattern: stdout and exit code
+### Test Patterns
+
+**Exit code + stdout assertions:**
 ```typescript
-// tests/scan.spec.ts
-import { test, expect } from '@playwright/test';
-import { runCLI } from './helpers/cli';
-import path from 'path';
-
-const FIXTURE_PATH = path.resolve(__dirname, '../fixtures/sample-react-app');
-
-test('scan command exits with 0 on valid project', () => {
-  const { exitCode } = runCLI(['scan', FIXTURE_PATH]);
+test("analyze exits 0 with components", () => {
+  const { stdout, exitCode } = runCLI(["analyze", "--path", fixture]);
   expect(exitCode).toBe(0);
+  expect(stdout).toContain("Button");
 });
+```
 
-test('scan command outputs valid JSON', () => {
-  const { stdout } = runCLI(['scan', FIXTURE_PATH, '--format', 'text']);
-  expect(stdout).toContain('ReactRadar');
+**JSON output parsing:**
+```typescript
+test("analyze --format json outputs parseable JSON", () => {
+  const { stdout, exitCode } = runCLI(["analyze", "--path", fixture, "--format", "json"]);
+  expect(exitCode).toBe(0);
+  const data = JSON.parse(stdout.slice(stdout.indexOf("[")));
+  expect(data.some((x: any) => x.componentName === "Button")).toBe(true);
 });
+```
 
-test('scan command fails with exit code 1 on missing path', () => {
-  const { exitCode, stderr } = runCLI(['scan', './nonexistent']);
+**Error cases (exitCode 1 + stderr):**
+```typescript
+test("exits 1 for missing path", () => {
+  const { exitCode, stderr } = runCLI(["analyze", "--path", "/nonexistent"]);
   expect(exitCode).toBe(1);
-  expect(stderr).toMatch(/not found|invalid/i);
+  expect(stderr).toMatch(/No directory found/);
 });
-```
-
-### Test pattern: JSON output file
-```typescript
-import fs from 'fs';
-import path from 'path';
-
-test('scan command writes radar.json', () => {
-  const outputPath = path.resolve(__dirname, '../radar.json');
-
-  // Clean up before test
-  if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
-
-  const { exitCode } = runCLI(['scan', FIXTURE_PATH, '--output', outputPath]);
-
-  expect(exitCode).toBe(0);
-  expect(fs.existsSync(outputPath)).toBe(true);
-
-  const json = JSON.parse(fs.readFileSync(outputPath, 'utf-8'));
-  expect(json).toHaveProperty('components');
-});
-```
-
----
-
-## File Structure Convention
-```
-ReactRadar/
-├── src/
-│   ├── index.ts          # CLI entry point (yargs)
-│   └── commands/
-│       └── scan.ts       # scan command logic
-├── tests/
-│   ├── helpers/
-│   │   └── cli.ts        # CLI spawn helper
-│   └── scan.spec.ts      # Playwright tests
-├── fixtures/
-│   └── sample-react-app/ # Already present — use this as test target
-├── playwright.config.ts
-└── package.json
 ```
 
 ---
 
 ## Rules for Cursor
 
-1. **Never use `execSync` directly in tests** — always use the `runCLI` helper
-2. **Always build before testing** — tests run against `dist/`, not `src/`
-3. **Exit codes matter** — 0 = success, 1 = error, always assert them
-4. **JSON output tests** must clean up files before and after
-5. **Fixtures are read-only** — never modify `fixtures/sample-react-app/` in tests
+1. **ESM imports** — always use `.js` extension on internal imports
+2. **Never use `execSync` in tests** — use `runCLI` helper
+3. **Build before testing** — tests run `dist/`, global-setup handles this
+4. **Exit codes** — 0 = success, 1 = error, always assert them
+5. **Fixtures are read-only** — never modify fixture files during tests
+6. **Verbose flag** — `--verbose` writes to stderr, never stdout
+7. **`process.exitCode`** — handlers set `process.exitCode = 1`, not `process.exit(1)`
+8. **NO_COLOR** — test helper strips ANSI; don't assert chalk-colored strings
+9. **JSON format** — `--format json` prints to stdout, parseable with `JSON.parse`
+10. **Table format** — default, contains component info in cli-table3 format

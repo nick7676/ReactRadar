@@ -2,6 +2,7 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import { ESLint } from "eslint";
 import globals from "globals";
+import path from "node:path";
 import { findComponent } from "../utils/findComponent.js";
 import { consoleColor } from "../utils/colorFunction.js";
 import { validateDirectory } from "../utils/validateDirectory.js";
@@ -9,8 +10,13 @@ import { validateDirectory } from "../utils/validateDirectory.js";
 export const lintHandler = async (argv: {
   path?: string;
   format?: "table" | "json";
+  verbose?: boolean;
 }) => {
   const targetDir = argv.path || process.cwd();
+  const v = argv.verbose === true;
+  const logV = (...lines: string[]) => {
+    if (v) console.error(lines.map((l) => chalk.dim(`[lint] ${l}`)).join("\n"));
+  };
 
   try {
     await validateDirectory(targetDir);
@@ -19,6 +25,8 @@ export const lintHandler = async (argv: {
     process.exitCode = 1;
     return;
   }
+
+  logV(`scan root: ${path.resolve(targetDir)}`);
 
   const files = (await findComponent(targetDir)).map((f) => f.filePath);
 
@@ -31,6 +39,8 @@ export const lintHandler = async (argv: {
     );
     return;
   }
+
+  logV(`${files.length} component file(s):`, ...files.map((f) => `  ${f}`));
 
   const tsPlugin = (await import("@typescript-eslint/eslint-plugin")).default;
   const tsParser = (await import("@typescript-eslint/parser")).default;
@@ -53,7 +63,14 @@ export const lintHandler = async (argv: {
         "Warning: eslint-plugin-react-hooks not installed — hooks rules skipped."
       )
     );
+    logV("plugin react-hooks: not loaded");
   }
+
+  if ("react-hooks" in plugins) {
+    logV("plugin react-hooks: loaded");
+  }
+
+  logV(`rules: ${Object.keys(rules).sort().join(", ")}`);
 
   const overrideConfig = {
     files: ["**/*.{js,jsx,ts,tsx}"],
